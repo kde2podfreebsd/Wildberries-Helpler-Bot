@@ -1,0 +1,48 @@
+version: "3"
+
+services:
+  db:
+    container_name: database
+    image: postgres:14
+    environment:
+      POSTGRES_DB: $DATABASE
+      POSTGRES_USER: $PGUSER
+      POSTGRES_PASSWORD: $PGPASSWORD
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      - botnet
+    volumes:
+      - ./postgres:/var/lib/postgresql
+
+  tgbot:
+    container_name: bot
+    build:
+      context: .
+    command: python app.py
+    restart: always
+    networks:
+      - botnet
+    env_file:
+      - ".env"
+    depends_on:
+      - db
+    volumes:
+      - .:/src
+
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@root.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - '5050:80'
+    networks:
+      - botnet
+
+networks:
+   botnet:
+      driver: bridge

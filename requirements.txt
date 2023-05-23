@@ -1,0 +1,10 @@
+asyncpg
+aiogram
+aiohttp
+aioredis
+python-dotenv
+gino
+requests
+qiwipy
+loguru
+openpyxl
