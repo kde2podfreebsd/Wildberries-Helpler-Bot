@@ -45,3 +45,18 @@ def delete_seller_keyboard(seller_id):
 
                                                   ])
     return seller_delete_keyboard
+
+
+def rename_seller_keyboard(seller_id):
+    seller_delete_keyboard = InlineKeyboardMarkup(row_width=2,
+                                                  inline_keyboard=[
+                                                      [
+
+                                                          InlineKeyboardButton(text="⬅️ Назад",
+                                                                               callback_data=set_command_seller_id.new(
+                                                                                   command_name="back_to_seller_setting",
+                                                                                   seller_id=seller_id))
+                                                      ],
+
+                                                  ])
+    return seller_delete_keyboard

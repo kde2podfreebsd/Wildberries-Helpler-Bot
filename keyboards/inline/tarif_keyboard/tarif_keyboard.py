@@ -29,7 +29,7 @@ def paid_keyboard():
                                                                  callback_data="other_amount#490")
                                         ],
                                         [
-                                            InlineKeyboardButton(text="+1 000 руб (скидка 2%)",
+                                            InlineKeyboardButton(text="+1 000 руб (скидка 1%)",
                                                                  callback_data="other_amount#1000")
                                         ],
                                         [

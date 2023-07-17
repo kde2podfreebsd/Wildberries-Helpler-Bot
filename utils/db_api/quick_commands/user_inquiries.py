@@ -43,3 +43,8 @@ async def update_balance(id: int, summ):
     user = await User.get(id)
     await user.update(balance=user.balance + summ).apply()
     return user
+
+async def update_discount(id: int, discount: int):
+    user = await User.get(id)
+    await user.update(discount=discount).apply()
+    # return user

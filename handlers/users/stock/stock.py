@@ -72,8 +72,8 @@ async def show_by_seller_stocks(call: types.CallbackQuery, callback_data: dict):
         [
             f'{hbold("ТОВАРЫ И ОСТАТКИ")}\n',
             f'📦 Остатки всего: {hbold(in_stock)}',
-            f'🚛 В пути до клиента: {to_client}',
-            f'🚚 В пути возвраты: {from_client}',
+            # f'🚛 В пути до клиента: {to_client}',
+            # f'🚚 В пути возвраты: {from_client}',
             f'🗂 Артикулы в продаже: {on_sale}',
         ]
     ), reply_markup=show_info_stock(seller_id, seller.filter_stocks, back=back))
@@ -126,8 +126,9 @@ async def show_stocks_by_filter(call: types.CallbackQuery, callback_data: dict, 
             string.append(f'📁 {product.subject} / {product.techSize}')
             string.append(
                 f'🏷 {product.brand} / {hlink(str(product.supplierArticle), f"https://www.wildberries.ru/catalog/{product.nmId}/detail.aspx")}')
-            string.append(f'🚛 В пути до клиента: {product.inWayToClient}')
-            string.append(f'🚚 В пути возвраты: {product.inWayFromClient}')
+            # string.append(f'🚛 В пути до клиента: {product.inWayToClient}')
+            # string.append(f'🚚 В пути возвраты: {product.inWayFromClient}')
+            # string.append(f"Склад: {product.warehouseName}")
             string.append(f'📊 Сейчас в продаже: {product.quantity}')
             string.append(f'📦 На складе: {product.quantityFull}\n')
     else:
@@ -136,4 +137,4 @@ async def show_stocks_by_filter(call: types.CallbackQuery, callback_data: dict, 
     await call.message.edit_text(
         "\n".join(string),
         reply_markup=stock_dynamic_keyboard(seller_id=seller_id, command_name=command_name, method=method,
-                                            end=end + 10, start=start + 10, next=next, back=back,is_search=is_search))
+                                            end=end + 10, start=start + 10, next=next, back=back, is_search=is_search))

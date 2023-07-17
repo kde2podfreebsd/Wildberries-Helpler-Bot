@@ -21,15 +21,18 @@ def seller_settings_keyboard(bot_enabled, reserve, id_seller):
                                           callback_data=set_command_seller_id.new(command_name="reserve",
                                                                                   seller_id=id_seller))
 
-    api_key_x64 = InlineKeyboardButton(text="🔑 API-ключ (x64)",
+    api_key_x64 = InlineKeyboardButton(text="🔑 API-ключ (статистика)",
                                        callback_data=set_command_seller_id.new(command_name="change_api_x64",
                                                                                seller_id=id_seller))
-    api_key_FBS = InlineKeyboardButton(text="🔑 API-ключ (FBS)",
+    api_key_FBS = InlineKeyboardButton(text="🔑 API-ключ (стандарт)",
                                        callback_data=set_command_seller_id.new(command_name="change_api_fbs",
                                                                                seller_id=id_seller))
-    exel_statistics = InlineKeyboardButton(text="📥 Скачать статистику (exel)",
+    exel_statistics = InlineKeyboardButton(text="📥 Скачать статистику (excel)",
                                            callback_data=set_command_seller_id.new(command_name="exel_statistics",
                                                                                    seller_id=id_seller))
+    rename_seller = InlineKeyboardButton(text="👤 Переименовать поставщика",
+                                         callback_data=set_command_seller_id.new(command_name="rename_seller_keyboard",
+                                                                                 seller_id=id_seller))
     delete_seller = InlineKeyboardButton(text="🗑 Удалить поставщика",
                                          callback_data=set_command_seller_id.new(command_name="delete_seller_keyboard",
                                                                                  seller_id=id_seller))
@@ -39,6 +42,7 @@ def seller_settings_keyboard(bot_enabled, reserve, id_seller):
     seller_settings.insert(api_key_x64)
     seller_settings.insert(api_key_FBS)
     seller_settings.insert(exel_statistics)
+    seller_settings.insert(rename_seller)
     seller_settings.insert(delete_seller)
     seller_settings.insert(back_to_add_seller)
     return seller_settings

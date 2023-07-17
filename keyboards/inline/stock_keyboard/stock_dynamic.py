@@ -82,7 +82,7 @@ def stock_dynamic_keyboard(seller_id, command_name, method, end, start, is_searc
                                                                                              ))
 
     keyboard.row(in_stock_button, reverse_in_stock_button)
-    keyboard.row(to_client_button, revers_to_client_button)
+    # keyboard.row(to_client_button, revers_to_client_button)
     keyboard.row(from_client_button, revers_from_client_button)
     keyboard.row(on_sale_button, revers_on_sale_button)
     back_button = InlineKeyboardButton(text="⬅️ Назад",

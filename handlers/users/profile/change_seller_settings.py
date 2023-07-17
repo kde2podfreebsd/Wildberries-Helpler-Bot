@@ -62,12 +62,13 @@ async def pay_the_fare(call, seller):
             [
                 f'❌ Включение Бота для {hbold(seller.name)} недоступно\n',
                 f'Пополните свой баланс для активации тарифа.',
+                f'С учетом скидки: {amount - int(amount * 0.01 * user.discount)}₽ / мес',
                 f'Тариф: {amount}₽ / мес\n',
             ]
         ), reply_markup=back_to_seller_setting(seller_id=seller.id)
         )
     else:
-        user = await update_balance(id=user_id, summ=amount * -1)
+        user = await update_balance(id=user_id, summ=(amount - (amount*0.01*user.discount)) * -1)
         await update_trail("paid", seller.id)
         now = datetime.datetime.now() + datetime.timedelta(days=30)
         await call.message.edit_text("\n".join(
@@ -82,9 +83,9 @@ async def pay_the_fare(call, seller):
 
 async def get_amount_tariff(seller_id):
     orders = await count_mouth_order(seller_id)
-    if len(orders) < 500:
+    if len(orders) < 200:
         amount = 340
-    elif 501 < len(orders) < 1000:
+    elif 201 < len(orders) < 1000:
         amount = 490
     elif 1001 < len(orders) < 3000:
         amount = 790

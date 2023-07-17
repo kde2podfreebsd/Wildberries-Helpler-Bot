@@ -1,4 +1,6 @@
 import requests
+import datetime
+import json
 
 TEST_TOKEN_FBS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NJRCI6IjAxYzU4NDhjLTg0MzAtNDIyZS1iMWIzLTc5MmM3ODE1ZDBkMiJ9.aIfhgRA5jaGxeCgAX8j1WSdEV6nsYl6gCAoBwcft0XA'
 
@@ -7,7 +9,7 @@ class JWTApiClient:
 
     def __init__(self, new_api_key: str):
         self.token = new_api_key
-        self.base = "https://statistics-api.wildberries.ru/api/v1/supplier/"
+        self.base = "https://suppliers-api.wildberries.ru/api/v3/supplies"
 
     def build_headers(self):
         return {
@@ -19,12 +21,12 @@ class JWTApiClient:
     def get_stock(self):
         url = f"https://statistics-api.wildberries.ru/api/v1/supplier/stocks"
 
-        offset = 200
+        offset = 1000
 
         def get_page(skip=0):
             get_params = {
-                "skip": skip,
-                "take": offset,
+                "next": skip,
+                "limit": offset,
             }
             return requests.get(url, get_params, headers=self.build_headers())
 
@@ -44,17 +46,19 @@ class JWTApiClient:
         return stock
 
     def get_orders(self, date_from):
-        url = "https://statistics-api.wildberries.ru/api/v1/supplier/orders"
+        url = "https://suppliers-api.wildberries.ru/api/v3/orders"
 
-        offset = 200
+        date_from = datetime.datetime.strptime(date_from, '%Y-%m-%dT%H:%M:%S')
+        date_from = int(date_from.timestamp())
+        offset = 1000
 
         def get_page(skip=0):
             get_params = {
-                "skip": skip,
-                "take": offset,
-                "date_start": date_from,
+                "next": skip,
+                "limit": offset,
+                "dateFrom": date_from,
             }
-            return requests.get(url, get_params, headers=self.build_headers())
+            return requests.get(url=url, params=get_params, headers=self.build_headers())
 
         response = get_page()
         if response.status_code != 200:
@@ -62,8 +66,10 @@ class JWTApiClient:
 
         orders = []
         batch = response.json()
-        total = int(batch.get("total"))
+        # print(batch)
+        total = len(batch['orders'])
         attempt = 1
+        # print(total)
 
         orders += batch["orders"]
         while total > offset * attempt:
@@ -72,5 +78,9 @@ class JWTApiClient:
         return orders
 
     def check_token(self):
-        url = self.base + "v1/info"
-        return requests.get(url, headers=self.build_headers())
+        url = self.base
+        params = {
+            "limit": "1000",
+            "next": "0"
+        }
+        return requests.get(url, headers=self.build_headers(), params=params)

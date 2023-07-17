@@ -50,7 +50,7 @@ def reports_keyboard(seller_id, filter_bought, filter_orders, back=None):
                                                                                                       end=9
                                                                                                       ))
     returns_button = InlineKeyboardButton(text="🚚 Возвраты",
-                                          callback_data=order_or_returns_callback.new(method="returns",
+                                            callback_data=order_or_returns_callback.new(method="returns",
                                                                                       command_name=filter_orders,
                                                                                       seller_id=seller_id,
                                                                                       start=0,

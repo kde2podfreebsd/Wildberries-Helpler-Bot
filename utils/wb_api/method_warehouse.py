@@ -571,11 +571,20 @@ async def get_in_stock_stocks_product(seller_id):
     """ Сортирует товары по остаткам """
     products = await select_stocks_by_seller_id(seller_id)
     sorting_products = []
-    unique_nmId = []
+    unique_nmId = set()
+    # unique_techSize = []
+    # unique_warehouse = []
     for product in products:
-        if product.nmId not in unique_nmId:
-            unique_nmId.append(product.nmId)
+        if (product.nmId, product.techSize) not in unique_nmId:
+            unique_nmId.add((product.nmId,product.techSize))
             sorting_products.append(product)
+        else:
+            for i in sorting_products:
+                if i.nmId == product.nmId and i.techSize == product.techSize:
+                    i.quantityFull += product.quantityFull
+                    i.quantity += product.quantity
+
+
     sorting_products = sorted(sorting_products, key=lambda x: x.quantityFull)
     return sorting_products
 
@@ -584,11 +593,18 @@ async def get_to_client_stocks_product(seller_id):
     """ Сортирует товары которые в доставке """
     products = await select_stocks_by_seller_id(seller_id)
     sorting_products = []
-    unique_nmId = []
+    unique_nmId = set()
+    # unique_techSize = []
+    # unique_warehouse = []
     for product in products:
-        if product.nmId not in unique_nmId:
-            unique_nmId.append(product.nmId)
+        if (product.nmId, product.techSize) not in unique_nmId:
+            unique_nmId.add((product.nmId, product.techSize))
             sorting_products.append(product)
+        else:
+            for i in sorting_products:
+                if i.nmId == product.nmId and i.techSize == product.techSize:
+                    i.quantityFull += product.quantityFull
+                    i.quantity += product.quantity
     sorting_products = sorted(sorting_products, key=lambda x: x.inWayToClient)
     return sorting_products
 
@@ -597,11 +613,18 @@ async def get_from_client_stocks_product(seller_id):
     """ Сортирует товары которые в возврате """
     products = await select_stocks_by_seller_id(seller_id)
     sorting_products = []
-    unique_nmId = []
+    unique_nmId = set()
+    # unique_techSize = []
+    # unique_warehouse = []
     for product in products:
-        if product.nmId not in unique_nmId:
-            unique_nmId.append(product.nmId)
+        if (product.nmId, product.techSize) not in unique_nmId:
+            unique_nmId.add((product.nmId, product.techSize))
             sorting_products.append(product)
+        else:
+            for i in sorting_products:
+                if i.nmId == product.nmId and i.techSize == product.techSize:
+                    i.quantityFull += product.quantityFull
+                    i.quantity += product.quantity
     sorting_products = sorted(sorting_products, key=lambda x: x.inWayFromClient)
     return sorting_products
 
@@ -610,11 +633,18 @@ async def get_on_sale_stocks_product(seller_id):
     """ Сортирует товары которые на продаже """
     products = await select_stocks_by_seller_id(seller_id)
     sorting_products = []
-    unique_nmId = []
+    unique_nmId = set()
+    # unique_techSize = []
+    # unique_warehouse = []
     for product in products:
-        if product.nmId not in unique_nmId:
-            unique_nmId.append(product.nmId)
+        if (product.nmId, product.techSize) not in unique_nmId:
+            unique_nmId.add((product.nmId, product.techSize))
             sorting_products.append(product)
+        else:
+            for i in sorting_products:
+                if i.nmId == product.nmId and i.techSize == product.techSize:
+                    i.quantityFull += product.quantityFull
+                    i.quantity += product.quantity
     sorting_products = sorted(sorting_products, key=lambda x: x.quantity)
     return sorting_products
 
@@ -708,6 +738,7 @@ def valid_token_fbs(token):
         """
     client = JWTApiClient(token)
     data = client.check_token()
+    # print(data.text)
     attempt = 0
     while data.status_code != 200:
         attempt += 1

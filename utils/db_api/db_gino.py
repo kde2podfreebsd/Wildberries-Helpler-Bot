@@ -119,6 +119,16 @@ class ProductsOrders(BaseModel):
     oblast = Column(String(100))
     query: sql.Select
 
+class ProductsOrderedFBS(BaseModel):
+    __tablename__ = 'products_ordered_fbs'
+    id = Column(BigInteger, primary_key=True)
+    createdAt = Column(DateTime())
+    nmId = Column(db.Integer)
+    price = Column(db.Integer)
+    seller_id = Column(ForeignKey('seller.id'))
+    warehouseId = Column(db.Integer)
+
+    query: sql.Select
 
 class User(TimeBaseModel):
     __tablename__ = 'user'
@@ -126,6 +136,8 @@ class User(TimeBaseModel):
     name = Column(String(100))
     chat_id = Column(BigInteger, unique=True)
     balance = Column(db.Integer)
+    discount = Column(db.Integer, default=0)
+    current_seller = Column(db.Integer)
 
     query: sql.Select
 

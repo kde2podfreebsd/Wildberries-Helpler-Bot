@@ -2,7 +2,8 @@ import datetime
 
 from asyncpg import UniqueViolationError
 
-from utils.db_api.db_gino import Seller, Association, ProductsBought, ProductsStocks, ProductsOrders, FreeTrail
+from utils.db_api.db_gino import Seller, Association, ProductsBought, ProductsStocks, ProductsOrders, FreeTrail, User,\
+    ProductsOrderedFBS
 from utils.wb_api.tools import date_search
 
 
@@ -37,6 +38,10 @@ async def count_seller_by_user(user_id: int):
     """ Подщет продавцов у пользователя """
     founding_sellers = await Association.query.where(Association.user_id == user_id).gino.all()
     return len(founding_sellers)
+
+
+async def select_all_users():
+    return await User.query.gino.all()
 
 
 async def select_seller_by_api_x64(api_x64):
@@ -125,8 +130,23 @@ async def delete_seller(seller_id):
     await ProductsBought.delete.where(ProductsBought.seller_id == seller_id).gino.status()
     await ProductsStocks.delete.where(ProductsStocks.seller_id == seller_id).gino.status()
     await ProductsOrders.delete.where(ProductsOrders.seller_id == seller_id).gino.status()
+    await ProductsOrderedFBS.delete.where(ProductsOrderedFBS.seller_id == seller_id).gino.status()
     await Association.delete.where(Association.seller_id == seller_id).gino.status()
     await Seller.delete.where(Seller.id == seller_id).gino.status()
+
+
+async def current_seller(user_id):
+    return await User.query.where(User.id == user_id).gino.first()
+
+
+async def rename_seller(seller_id, name):
+    seller = await Seller.get(seller_id)
+    await seller.update(name=name).apply()
+
+
+async def update_current_seller(user_id, seller_id):
+    user = await User.query.where(User.id == user_id).gino.first()
+    await user.update(current_seller=seller_id).apply()
 
 
 async def check_free_trail(user_id, api_x64):

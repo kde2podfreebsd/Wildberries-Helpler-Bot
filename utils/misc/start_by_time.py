@@ -10,10 +10,11 @@ from data.config import AMOUNT_TARIFF
 from loader import dp
 from utils.db_api.db_gino import ProductsOrders, ProductsStocks, ProductsBought
 from utils.db_api.quick_commands.product_inquiries import update_sales_products, update_stocks_products, \
-    update_ordered_products, get_order_by_number, deleting_items, get_sale_by_number
+    update_ordered_products, get_order_by_number, deleting_items, get_sale_by_number, \
+    get_full_stock_count_by_id_and_size, update_orders_FBS, select_ordered_FBS
 from utils.db_api.quick_commands.seller_inquiries import update_last_scan_sales, \
     update_last_scan_orders, select_all_sellers_enable, select_seller, overdue_tariff, update_trail, overdue_free_trail, \
-    returns_unsubscribed_sellers, for_notification_tariff
+    returns_unsubscribed_sellers, for_notification_tariff, select_all_users, select_seller_by_user
 from utils.db_api.quick_commands.user_inquiries import select_user_by_seller, update_balance
 from utils.wb_api.method_warehouse import get_sales_products, get_stock_products, get_ordered_products, \
     get_ordered_products_fbc
@@ -26,7 +27,7 @@ async def update_all_bought(wait_for):
         :param wait_for: время в минутах
      """
     while True:
-        await asyncio.sleep(wait_for * 10)
+        await asyncio.sleep(wait_for * 60)
         sellers = await select_all_sellers_enable()
         for seller in sellers:
             last_scan_orders = get_date(days=1)
@@ -66,7 +67,7 @@ async def update_stocks(wait_for):
         :param wait_for: время в часах
      """
     while True:
-        await asyncio.sleep(wait_for * 10)
+        await asyncio.sleep(wait_for * 3600)
         sellers = await select_all_sellers_enable()
         for seller in sellers:
 
@@ -126,9 +127,10 @@ async def send_new_sales(sales, seller_id):
                 await update_sales_products(seller_id, sale)
                 count_successful += 1
                 *info, = await info_on_sale(sale['nmId'], seller_id, sale['saleID'])
-                in_sale = info[7]
+                in_sale = await get_full_stock_count_by_id_and_size(
+                    seller_id=seller_id, nmId=sale['nmId'], size=sale['techSize'])
                 in_transit = info[4]
-                if info[6] != 0 and in_sale != 0 and info[9] != 0:
+                if in_sale != 0 and info[9] != 0:
                     if info[9] > 0:
                         enough_for = 90 / float(info[9]) * in_sale
                     else:
@@ -156,8 +158,8 @@ async def send_new_sales(sales, seller_id):
                     f'🛣 {sale["warehouseName"]} → {sale["regionName"]}',
                     f'💼 Комиссия (базовая): {hbold("15%")}',
                     f'💎 Выкуп за 3 мес: {hbold(f"{info[9]} шт")}',
-                    f'🚀 В пути до клиента: {hbold(in_transit)}',
-                    f'🚚 В пути обратно на склад (возврат): {hbold(info[5])}',
+                    # f'🚀 В пути до клиента: {hbold(in_transit)}',
+                    # f'🚚 В пути обратно на склад (возврат): {hbold(info[5])}',
                     f'🛒 В продаже: {hbold(in_sale)}',
                 ]
                 if enough_for < seller.reserve:
@@ -200,9 +202,10 @@ async def send_new_orders(orders, seller_id):
                 date = date.strftime("%d.%m.%Y %H:%M")
                 photo_url = await get_photo_url(order['nmId'])
                 price = int(order["totalPrice"] * (1 - order["discountPercent"] / 100))
-                in_sale = info[7]
+                in_sale = await get_full_stock_count_by_id_and_size(
+                    seller_id=seller_id, nmId=order['nmId'], size=order['techSize'])
                 in_transit = info[4]
-                if info[6] != 0 and in_sale != 0 and info[9] != 0:
+                if in_sale != 0 and info[9] != 0:
                     if info[9] > 0:
                         enough_for = 90 / info[9] * in_sale
                     else:
@@ -222,8 +225,8 @@ async def send_new_orders(orders, seller_id):
                     f'🛣 {info[8]} → {order["oblast"]}',
                     f'💼 Комиссия (базовая): {hbold("15%")}',
                     f'💎 Выкуп за 3 мес: {hbold(f"{info[9]} шт")}',
-                    f'🚀 В пути до клиента: {hbold(in_transit)}',
-                    f'🚚 В пути обратно на склад (возврат): {hbold(info[5])}',
+                    # f'🚀 В пути до клиента: {hbold(in_transit)}',
+                    # f'🚚 В пути обратно на склад (возврат): {hbold(info[5])}',
                     f'🛒 В продаже: {hbold(in_sale)}',
                 ]
                 if enough_for < seller.reserve:
@@ -253,46 +256,47 @@ async def send_new_orders_fbs(orders, seller_id):
     count_order = len(orders)
     seller = await select_seller(seller_id)
     for order in orders:
-        count_order -= 1
-        in_way_to_client, in_way_from_client, in_stock, in_order, from_stock, count_bought = await info_on_order_fbs(
-            order['wbWhId'], seller_id)
-        date = datetime.datetime.strptime(order['dateCreated'].split(".")[0], "%Y-%m-%dT%H:%M:%S")
-        date = date.strftime("%d.%m.%Y %H:%M")
-        photo_url = await get_photo_url(order['wbWhId'])
-        price = int(order["totalPrice"])
-        if count_bought > 0:
-            enough_for = 90 / count_bought * in_stock
-        else:
-            enough_for = 90 * in_stock
+        first = await select_ordered_FBS(seller_id, order['id'])
+        if first:
+            count_order -= 1
+            in_way_to_client, in_way_from_client, in_stock, in_order, from_stock, count_bought = await info_on_order_fbs(
+                order['nmId'], seller_id)
+            date = datetime.datetime.strptime(order['createdAt'].split(".")[0], "%Y-%m-%dT%H:%M:%SZ")
+            date = date.strftime("%d.%m.%Y %H:%M")
+            photo_url = await get_photo_url(order['nmId'])
+            price = int(order["price"]) // 100
+            if count_bought > 0:
+                enough_for = 90 / count_bought * in_stock
+            else:
+                enough_for = 90 * in_stock
 
-        if enough_for > 90:
-            enough_for = 90
-        string = [
-            hbold("Заказ со склада поставщика"),
-            date,
-            f'{hbold(f"🛒 Заказ : {await get_normal_number(price)}₽")}',
-            f'💼 Комиссия (базовая): {hbold("15%")}',
-            f'💎 Выкуп за 3 мес: {hbold(f"{count_bought} шт")}',
-            f'🌐 {from_stock} → {order["oblast"]}',
-            f'🚛 В пути до клиента: {in_way_to_client}',
-            f'🚚 В пути возвраты: {in_way_from_client}',
-            f'🗂 В продаже: {in_order}',
-        ]
-        if enough_for < seller.reserve:
-            string.append(f'📦 {hbold(f"{in_stock} шт")} хватит на ⚠️ {hbold(f"{int(enough_for)} дн.")}')
-        else:
-            string.append(f'📦 {hbold(f"{in_stock} шт")} хватит на {hbold(f"{int(enough_for)} дн.")}')
-        if enough_for < seller.reserve:
-            replenish_on = round(seller.reserve / (90 / count_bought))
-            replenish_on = replenish_on - in_stock
-            string.append(f'🚗 Пополните склад на {hbold(f"{replenish_on} шт.")}')
-        keyboard = InlineKeyboardMarkup(row_width=1)
-        button = InlineKeyboardButton(text=f"👉🏻Карточка {order['wbWhId']}",
-                                      url=f"https://www.wildberries.ru/catalog/{order['wbWhId']}/detail.aspx")
-        keyboard.insert(button)
-        for user in users:
-            await dp.bot.send_photo(chat_id=user.chat_id, caption="\n".join(string), reply_markup=keyboard,
-                                    photo=photo_url)
+            if enough_for > 90:
+                enough_for = 90
+            string = [
+                hbold("Заказ со склада поставщика"),
+                date,
+                f'{hbold(f"🛒 Заказ : {await get_normal_number(price)}₽")}',
+                f'💼 Комиссия (базовая): {hbold("15%")}',
+                f'💎 Выкуп за 3 мес: {hbold(f"{count_bought} шт")}',
+                # f'🌐 {from_stock} → {order["oblast"]}',
+                f'🗂 В продаже: {in_order}',
+            ]
+            if enough_for < seller.reserve:
+                string.append(f'📦 {hbold(f"{in_stock} шт")} хватит на ⚠️ {hbold(f"{int(enough_for)} дн.")}')
+            else:
+                string.append(f'📦 {hbold(f"{in_stock} шт")} хватит на {hbold(f"{int(enough_for)} дн.")}')
+            if enough_for < seller.reserve and count_bought != 0:
+                replenish_on = round(seller.reserve / (90 / count_bought))
+                replenish_on = replenish_on - in_stock
+                string.append(f'🚗 Пополните склад на {hbold(f"{replenish_on} шт.")}')
+            keyboard = InlineKeyboardMarkup(row_width=1)
+            button = InlineKeyboardButton(text=f"👉🏻Карточка {order['nmId']}",
+                                          url=f"https://www.wildberries.ru/catalog/{order['nmId']}/detail.aspx")
+            keyboard.insert(button)
+            for user in users:
+                await dp.bot.send_photo(chat_id=user.chat_id, caption="\n".join(string), reply_markup=keyboard,
+                                        photo=photo_url)
+            await update_orders_FBS(seller_id, order)
 
 
 async def info_on_order(nmId, seller_id):
@@ -400,18 +404,19 @@ async def info_on_order_fbs(nmId, user_id):
         :return from_stock: название склада откуда идет доставка
         :return count_bought: количество такихже заказов за 90 дней
      """
-    stock = await ProductsStocks.query.where(ProductsStocks.user_id == user_id).where(
-        ProductsStocks.nmId == int(nmId)).gino.first()
+    stock = await ProductsStocks.query.where(ProductsStocks.seller_id == user_id).where(
+        ProductsStocks.nmId == int(nmId)).gino.all()
     in_way_to_client, in_way_from_client, in_stock, in_order = 0, 0, 0, 0
     from_stock = "Неизвестно"
     if stock:
-        in_way_to_client = stock.inWayToClient
-        in_way_from_client = stock.inWayFromClient
-        in_stock = stock.quantityFull
-        in_order = stock.quantity
-        from_stock = stock.warehouseName
+        for item in stock:
+            in_way_to_client += item.inWayToClient
+            in_way_from_client += item.inWayFromClient
+            in_stock += item.quantityFull
+            in_order += item.quantity
+            # from_stock = stock.warehouseName
     in_90_days = date_search("in_90_days")
-    products = await ProductsBought.query.where(ProductsBought.user_id == user_id).where(
+    products = await ProductsBought.query.where(ProductsBought.seller_id == user_id).where(
         ProductsBought.date > in_90_days).where(
         ProductsBought.nmId == int(nmId)).gino.all()
     count_bought = 0
@@ -432,7 +437,7 @@ async def get_photo_url(nmId):
         res = requests.get(url=url)
         if res.status_code == 200:
             return url
-
+    return "https://play-lh.googleusercontent.com/VE8_k3cJPs4_xBe7pdjqJ_PsG1VXfZXNijRWo_0nGk5mIlCWLdVsyr-TxBXLauixOoU"
 
 
 async def shutdown_bot(wait_for):
@@ -446,9 +451,10 @@ async def shutdown_bot(wait_for):
             users = await select_user_by_seller(seller.id)
             paid = False
             for user in users:
-                if user.balance >= AMOUNT_TARIFF:
+                if user.discount is None: discount = 0
+                if user.balance >= AMOUNT_TARIFF - (AMOUNT_TARIFF*0.01*user.discount):
                     paid = True
-                    await update_balance(user.id, -AMOUNT_TARIFF)
+                    await update_balance(user.id, -(AMOUNT_TARIFF - (AMOUNT_TARIFF*0.01*user.discount)))
                     await update_trail("paid", seller.id)
                     break
             if paid is False:
@@ -460,9 +466,9 @@ async def shutdown_bot(wait_for):
             paid = False
             if seller.starting_tarif is None:
                 for user in users:
-                    if user.balance >= AMOUNT_TARIFF:
+                    if user.balance >= AMOUNT_TARIFF - (AMOUNT_TARIFF*0.01*user.discount):
                         paid = True
-                        await update_balance(user.id, -AMOUNT_TARIFF)
+                        await update_balance(user.id, -(AMOUNT_TARIFF - (AMOUNT_TARIFF*0.01*user.discount)))
                         await update_trail("paid", seller.id)
                         break
                 if paid is False:

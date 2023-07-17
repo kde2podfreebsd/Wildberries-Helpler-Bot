@@ -1,6 +1,6 @@
 import datetime
 
-from utils.db_api.db_gino import ProductsBought, ProductsStocks, ProductsOrders
+from utils.db_api.db_gino import ProductsBought, ProductsStocks, ProductsOrders, ProductsOrderedFBS
 from utils.db_api.quick_commands.seller_inquiries import select_seller
 from utils.wb_api.tools import format_date, date_search
 
@@ -15,6 +15,22 @@ async def update_sales_products(seller_id, sale):
                              number=sale['gNumber'])
 
     await product.create()
+
+
+async def update_orders_FBS(seller_id, order):
+    """ Обновляет продажи"""
+    date = format_date(str(order['createdAt'])[:-1])
+    product = ProductsOrderedFBS(
+        id=order['id'],
+        createdAt = date,
+        nmId = order['nmId'],
+        price = order['price'],
+        seller_id = seller_id,
+        warehouseId = order['warehouseId']
+    )
+
+    await product.create()
+
 
 
 async def update_stocks_products(seller_id, data):
@@ -52,6 +68,16 @@ async def get_sale_by_number(number, seller_id):
     """ Возврощает заказы по их номеру"""
     return await ProductsBought.query.where(ProductsBought.seller_id == seller_id).where(
         ProductsBought.number == number).gino.all()
+
+
+async def get_full_stock_count_by_id_and_size(seller_id: int, nmId: int, size: str):
+    stocks = await ProductsStocks.query.where(ProductsStocks.seller_id == seller_id).where(
+        ProductsStocks.nmId == nmId).where(
+        ProductsStocks.techSize == size).gino.all()
+    quantityFull = 0
+    for item in stocks:
+        quantityFull += item.quantityFull
+    return quantityFull
 
 
 async def select_stocks_by_seller_id(seller_id):
@@ -124,6 +150,7 @@ async def deleting_items():
     in_90_days = date_search("in_90_days")
     await ProductsBought.delete.where(ProductsBought.date < in_90_days).gino.status()
     await ProductsOrders.delete.where(ProductsOrders.date < in_90_days).gino.status()
+    await ProductsOrderedFBS.delete.where(ProductsOrderedFBS.date < in_90_days).gino.status()
 
 
 async def count_mouth_order(seller_id):
@@ -148,3 +175,16 @@ async def get_days_stats(seller_id, days):
         ProductsBought.date > date).gino.all()
     stocks = await ProductsStocks.query.where(ProductsStocks.seller_id == seller_id).gino.all()
     return orders, sales, stocks
+
+
+async def select_ordered_FBS(seller_id, id):
+    item = await ProductsOrderedFBS.query.where(ProductsOrderedFBS.seller_id == seller_id).where(ProductsOrderedFBS.id == id).gino.first()
+    if item:
+        return False
+    return True
+
+
+async def select_all_orders_by_seller_last_month(seller_id: int):
+    date = date_search("in_30_days")
+    orders = 0
+    order_x64 = await ProductsOrders.query.where(ProductsOrders.seller_id == seller_id).where()

@@ -16,7 +16,7 @@ class X64ApiClient:
 
     @staticmethod
     async def connect(client, params, headers, server):
-        print(server)
+        # print(server)
         # redis_client.get_date
         async with client.get(url=server, headers=headers, params=params) as resp:
             return resp.status
